@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import streamlit as st
 from scipy import stats
+from scipy.stats import rankdata  # ✅ Added import
 from io import BytesIO
 import pandas as pd
 
@@ -131,7 +132,7 @@ material_ranges = {
 
 # Get colors from colormap
 cmap = plt.get_cmap(colormap)
-colors = [cmap(0.3), cmap(0.7)]  # Two distinct colors from colormap
+colors = [cmap(0.3), cmap(0.7)]
 
 # Main display
 st.title("🔬 SLM Powder Particle Size Distribution Analyzer")
@@ -216,7 +217,6 @@ ax.axvline(x=D50, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 
 # ===== SINGLE UNIFIED LEGEND =====
-# Create custom legend handles
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -308,9 +308,10 @@ with col_dl2:
     )
 
 with col_dl3:
+    # ✅ Fixed: Use scipy.stats.rankdata instead of np.rankdata
     df = pd.DataFrame({
         'Particle_Size_μm': particle_sizes,
-        'Cumulative_Percentile': np.rankdata(particle_sizes) / len(particle_sizes) * 100
+        'Cumulative_Percentile': rankdata(particle_sizes) / len(particle_sizes) * 100
     })
     csv = df.to_csv(index=False)
     
@@ -325,7 +326,6 @@ with col_dl3:
 with st.expander("🎨 Colormap Preview"):
     st.write(f"**Selected:** `{colormap}`")
     
-    # Show all available colormaps in a grid
     fig_cmap, axes = plt.subplots(5, 10, figsize=(20, 2))
     axes = axes.flatten()
     
