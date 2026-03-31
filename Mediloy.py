@@ -6,6 +6,8 @@ from scipy import stats
 from scipy.stats import rankdata
 from io import BytesIO
 import pandas as pd
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 # Page configuration
 st.set_page_config(page_title="SLM Powder PSD Analyzer", layout="wide")
@@ -54,14 +56,14 @@ colormap = st.sidebar.selectbox(
 # Font size control
 font_size = st.sidebar.slider("Font Size", 8, 36, 10, 1)
 
-# Figure size - ✅ FIXED: All floats
+# Figure size
 fig_width = st.sidebar.slider("Figure Width", 4.0, 12.0, 8.0, 0.5)
 fig_height = st.sidebar.slider("Figure Height", 4.0, 10.0, 6.0, 0.5)
 
-# Legend position
+# Legend position - ✅ Added "No Legend" option
 legend_position = st.sidebar.selectbox(
     "Legend Position",
-    ["best", "upper right", "upper left", "lower left", "lower right",
+    ["No Legend", "best", "upper right", "upper left", "lower left", "lower right",
      "right", "center left", "center right", "lower center", "upper center", "center"],
     index=0
 )
@@ -71,6 +73,33 @@ show_grid = st.sidebar.checkbox("Show Grid", value=False)
 
 # Line width
 line_width = st.sidebar.slider("Line Width", 0.5, 3.0, 2.0, 0.25)
+
+# ===== NEW: AXIS & TICK CONTROLS =====
+st.sidebar.subheader("📏 Axis & Tick Settings")
+
+# Axis/box thickness
+axis_thickness = st.sidebar.slider("Axis Thickness", 0.5, 3.0, 1.5, 0.25)
+
+# Tick size (length)
+tick_length = st.sidebar.slider("Tick Length", 2, 12, 6, 1)
+
+# Tick width
+tick_width = st.sidebar.slider("Tick Width", 0.5, 3.0, 1.5, 0.25)
+
+# Tick label size
+tick_label_size = st.sidebar.slider("Tick Label Size", 6, 24, 10, 1)
+
+# Number of bins
+num_bins = st.sidebar.slider("Number of Bins", 20, 100, 50, 5)
+
+# Alpha transparency
+bar_alpha = st.sidebar.slider("Bar Transparency", 0.3, 1.0, 0.8, 0.05)
+
+# Show D-value vertical lines
+show_d_lines = st.sidebar.checkbox("Show D-Value Lines", value=True)
+
+# Show statistics box
+show_stats_box = st.sidebar.checkbox("Show Statistics Box", value=True)
 
 # ===== DISTRIBUTION PARAMETERS =====
 st.sidebar.subheader("📐 Distribution Parameters")
@@ -147,12 +176,12 @@ ax = fig.add_subplot(gs[0, 0])
 # Set professional style
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = font_size
-plt.rcParams['axes.linewidth'] = 1.5
+plt.rcParams['axes.linewidth'] = axis_thickness
 plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
 
 # Create histogram bins (logarithmic scale)
-bins = np.logspace(np.log10(1), np.log10(100), 50)
+bins = np.logspace(np.log10(1), np.log10(100), num_bins)
 
 # Calculate histogram
 counts, bin_edges = np.histogram(particle_sizes, bins=bins, density=True)
@@ -170,7 +199,7 @@ bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 # Plot frequency distribution as bars
 bar_width = bin_edges[1:] - bin_edges[:-1]
 ax.bar(bin_edges[:-1], freq_dist, width=bar_width, bottom=0, 
-       align='edge', color=colors[0], edgecolor='none', alpha=0.8)
+       align='edge', color=colors[0], edgecolor='none', alpha=bar_alpha)
 
 # Create secondary y-axis for cumulative distribution
 ax2 = ax.twinx()
@@ -191,11 +220,18 @@ ax.set_xlabel('Particle Diameter [μm]', fontsize=font_size+1, fontweight='bold'
 ax.set_ylabel('Frequency [%]', fontsize=font_size+1, fontweight='bold', color=colors[0], labelpad=10)
 ax2.set_ylabel('Cumulative [%]', fontsize=font_size+1, fontweight='bold', color=colors[1], labelpad=10)
 
-# Set tick parameters
-ax.tick_params(axis='both', which='major', labelsize=font_size, width=1.5, length=6)
-ax2.tick_params(axis='both', which='major', labelsize=font_size, width=1.5, length=6, 
-                labelcolor=colors[1])
+# Set tick parameters - ✅ Enhanced control
+ax.tick_params(axis='both', which='major', labelsize=tick_label_size, 
+               width=tick_width, length=tick_length)
+ax2.tick_params(axis='both', which='major', labelsize=tick_label_size, 
+                width=tick_width, length=tick_length, labelcolor=colors[1])
 ax.tick_params(axis='y', which='major', labelcolor=colors[0])
+
+# Set axis line thickness
+for spine in ax.spines.values():
+    spine.set_linewidth(axis_thickness)
+for spine in ax2.spines.values():
+    spine.set_linewidth(axis_thickness)
 
 # Set x-axis ticks
 ax.set_xticks([1, 10, 100])
@@ -206,29 +242,32 @@ if show_grid:
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
 # Add D10, D50, D90 text box
-textstr = f'D₉₀ = {D90:.2f} μm\nD₅₀ = {D50:.2f} μm\nD₁₀ = {D10:.2f} μm\nSpan = {span:.2f}'
-props = dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='gray', linewidth=1)
-ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=font_size, 
-        verticalalignment='top', fontweight='bold', bbox=props)
+if show_stats_box:
+    textstr = f'D₉₀ = {D90:.2f} μm\nD₅₀ = {D50:.2f} μm\nD₁₀ = {D10:.2f} μm\nSpan = {span:.2f}'
+    props = dict(boxstyle='round', facecolor='white', alpha=0.9, 
+                 edgecolor='gray', linewidth=axis_thickness)
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=font_size, 
+            verticalalignment='top', fontweight='bold', bbox=props)
 
 # Add vertical lines for D10, D50, D90
-ax.axvline(x=D10, color='gray', linestyle='--', linewidth=1, alpha=0.7)
-ax.axvline(x=D50, color='gray', linestyle='--', linewidth=1, alpha=0.7)
-ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+if show_d_lines:
+    ax.axvline(x=D10, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+    ax.axvline(x=D50, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+    ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 
 # ===== SINGLE UNIFIED LEGEND =====
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
-
-legend_elements = [
-    Patch(facecolor=colors[0], edgecolor='none', alpha=0.8, label='Frequency Distribution'),
-    Line2D([0], [0], color=colors[1], linewidth=line_width, label='Cumulative PSD'),
-    Line2D([0], [0], color='gray', linestyle='--', linewidth=1, alpha=0.7, label='D₁₀, D₅₀, D₉₀')
-]
-
-# Add single legend at best position
-ax.legend(handles=legend_elements, loc=legend_position, fontsize=font_size-1, 
-          framealpha=0.9, edgecolor='gray')
+# Add legend only if not "No Legend"
+if legend_position != "No Legend":
+    legend_elements = [
+        Patch(facecolor=colors[0], edgecolor='none', alpha=bar_alpha, label='Frequency Distribution'),
+        Line2D([0], [0], color=colors[1], linewidth=line_width, label='Cumulative PSD'),
+    ]
+    if show_d_lines:
+        legend_elements.append(Line2D([0], [0], color='gray', linestyle='--', 
+                                       linewidth=1, alpha=0.7, label='D₁₀, D₅₀, D₉₀'))
+    
+    ax.legend(handles=legend_elements, loc=legend_position, fontsize=font_size-1, 
+              framealpha=0.9, edgecolor='gray')
 
 # Tight layout
 plt.tight_layout()
