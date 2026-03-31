@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 
 # Set professional style
 plt.style.use('default')
-plt.rcParams['font.family'] 'Arial'
+plt.rcParams['font.family']='Arial'
 plt.rcParams['font.size'] = 10
 plt.rcParams['axes.linewidth'] = 1.5
 plt.rcParams['xtick.direction'] = 'in'
