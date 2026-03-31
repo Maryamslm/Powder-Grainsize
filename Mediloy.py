@@ -60,7 +60,7 @@ font_size = st.sidebar.slider("Font Size", 8, 36, 10, 1)
 fig_width = st.sidebar.slider("Figure Width", 4.0, 12.0, 8.0, 0.5)
 fig_height = st.sidebar.slider("Figure Height", 4.0, 10.0, 6.0, 0.5)
 
-# Legend position - ✅ Added "No Legend" option
+# Legend position
 legend_position = st.sidebar.selectbox(
     "Legend Position",
     ["No Legend", "best", "upper right", "upper left", "lower left", "lower right",
@@ -74,7 +74,29 @@ show_grid = st.sidebar.checkbox("Show Grid", value=False)
 # Line width
 line_width = st.sidebar.slider("Line Width", 0.5, 3.0, 2.0, 0.25)
 
-# ===== NEW: AXIS & TICK CONTROLS =====
+# ===== NEW: HISTOGRAM BAR SETTINGS =====
+st.sidebar.subheader("📊 Histogram Bar Settings")
+
+# Bar edge visibility
+show_bar_edges = st.sidebar.checkbox("Show Bar Edges", value=True)
+
+# Bar edge color
+bar_edge_color = st.sidebar.color_picker("Bar Edge Color", "#000000")
+
+# Bar edge width
+bar_edge_width = st.sidebar.slider("Bar Edge Width", 0.0, 2.0, 0.5, 0.1)
+
+# Bar edge style
+bar_edge_style = st.sidebar.selectbox(
+    "Bar Edge Style",
+    ["solid", "dashed", "dotted", "dashdot"],
+    index=0
+)
+
+# Gap between bars (for visual separation)
+bar_gap = st.sidebar.slider("Bar Gap (%)", 0, 30, 0, 1)
+
+# ===== AXIS & TICK CONTROLS =====
 st.sidebar.subheader("📏 Axis & Tick Settings")
 
 # Axis/box thickness
@@ -196,10 +218,30 @@ freq_dist = counts * 100
 # Calculate bin centers for plotting
 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-# Plot frequency distribution as bars
+# Plot frequency distribution as bars - ✅ DISTINCT BOUNDARIES
 bar_width = bin_edges[1:] - bin_edges[:-1]
-ax.bar(bin_edges[:-1], freq_dist, width=bar_width, bottom=0, 
-       align='edge', color=colors[0], edgecolor='none', alpha=bar_alpha)
+
+# Adjust bar width for gap effect
+if bar_gap > 0:
+    adjusted_width = bar_width * (1 - bar_gap / 100)
+    bar_left = bin_edges[:-1] + (bar_width - adjusted_width) / 2
+else:
+    adjusted_width = bar_width
+    bar_left = bin_edges[:-1]
+
+# Set edge parameters
+edge_params = {}
+if show_bar_edges:
+    edge_params = {
+        'edgecolor': bar_edge_color,
+        'linewidth': bar_edge_width,
+        'linestyle': bar_edge_style
+    }
+else:
+    edge_params = {'edgecolor': 'none'}
+
+ax.bar(bar_left, freq_dist, width=adjusted_width, bottom=0, 
+       align='edge', color=colors[0], alpha=bar_alpha, **edge_params)
 
 # Create secondary y-axis for cumulative distribution
 ax2 = ax.twinx()
@@ -220,7 +262,7 @@ ax.set_xlabel('Particle Diameter [μm]', fontsize=font_size+1, fontweight='bold'
 ax.set_ylabel('Frequency [%]', fontsize=font_size+1, fontweight='bold', color=colors[0], labelpad=10)
 ax2.set_ylabel('Cumulative [%]', fontsize=font_size+1, fontweight='bold', color=colors[1], labelpad=10)
 
-# Set tick parameters - ✅ Enhanced control
+# Set tick parameters
 ax.tick_params(axis='both', which='major', labelsize=tick_label_size, 
                width=tick_width, length=tick_length)
 ax2.tick_params(axis='both', which='major', labelsize=tick_label_size, 
@@ -256,10 +298,10 @@ if show_d_lines:
     ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 
 # ===== SINGLE UNIFIED LEGEND =====
-# Add legend only if not "No Legend"
 if legend_position != "No Legend":
     legend_elements = [
-        Patch(facecolor=colors[0], edgecolor='none', alpha=bar_alpha, label='Frequency Distribution'),
+        Patch(facecolor=colors[0], edgecolor=bar_edge_color if show_bar_edges else 'none', 
+              linewidth=bar_edge_width, alpha=bar_alpha, label='Frequency Distribution'),
         Line2D([0], [0], color=colors[1], linewidth=line_width, label='Cumulative PSD'),
     ]
     if show_d_lines:
