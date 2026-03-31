@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import streamlit as st
 from scipy import stats
-from scipy.stats import rankdata  # ✅ Added import
+from scipy.stats import rankdata
 from io import BytesIO
 import pandas as pd
 
@@ -54,9 +54,9 @@ colormap = st.sidebar.selectbox(
 # Font size control
 font_size = st.sidebar.slider("Font Size", 8, 16, 10, 1)
 
-# Figure size
-fig_width = st.sidebar.slider("Figure Width", 4, 12, 8, 0.5)
-fig_height = st.sidebar.slider("Figure Height", 4, 10, 6, 0.5)
+# Figure size - ✅ FIXED: All floats
+fig_width = st.sidebar.slider("Figure Width", 4.0, 12.0, 8.0, 0.5)
+fig_height = st.sidebar.slider("Figure Height", 4.0, 10.0, 6.0, 0.5)
 
 # Legend position
 legend_position = st.sidebar.selectbox(
@@ -308,7 +308,6 @@ with col_dl2:
     )
 
 with col_dl3:
-    # ✅ Fixed: Use scipy.stats.rankdata instead of np.rankdata
     df = pd.DataFrame({
         'Particle_Size_μm': particle_sizes,
         'Cumulative_Percentile': rankdata(particle_sizes) / len(particle_sizes) * 100
