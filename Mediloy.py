@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import streamlit as st
 from scipy import stats
+from io import BytesIO
+import pandas as pd
 
 # Page configuration
 st.set_page_config(page_title="SLM Powder PSD Analyzer", layout="wide")
@@ -33,27 +35,26 @@ if distribution_type == "Log-Normal":
     particle_sizes = np.random.lognormal(mu, sigma, 10000)
     
 elif distribution_type == "Normal (Gaussian)":
-    mean = st.sidebar.slider("Mean (μm)", 15, 50, 25, 1)
-    std = st.sidebar.slider("Std Dev (μm)", 2, 15, 8, 0.5)
+    mean = st.sidebar.slider("Mean (μm)", 15.0, 50.0, 25.0, 1.0)
+    std = st.sidebar.slider("Std Dev (μm)", 2.0, 15.0, 8.0, 0.5)
     particle_sizes = np.random.normal(mean, std, 10000)
     
 elif distribution_type == "Rosin-Rammler":
-    d_mean = st.sidebar.slider("Mean Diameter (μm)", 15, 50, 25, 1)
+    d_mean = st.sidebar.slider("Mean Diameter (μm)", 15.0, 50.0, 25.0, 1.0)
     n_shape = st.sidebar.slider("Shape Parameter (n)", 1.0, 5.0, 2.5, 0.1)
-    # Rosin-Rammler: 1 - exp(-(x/d)^n)
     u = np.random.uniform(0, 1, 10000)
     particle_sizes = d_mean * (-np.log(1 - u))**(1/n_shape)
     
 elif distribution_type == "Weibull":
-    scale = st.sidebar.slider("Scale Parameter (μm)", 15, 50, 25, 1)
+    scale = st.sidebar.slider("Scale Parameter (μm)", 15.0, 50.0, 25.0, 1.0)
     shape = st.sidebar.slider("Shape Parameter", 1.0, 5.0, 2.5, 0.1)
     particle_sizes = np.random.weibull(shape, 10000) * scale
     
 elif distribution_type == "Bimodal":
-    mean1 = st.sidebar.slider("Mean 1 (μm)", 10, 30, 15, 1)
-    std1 = st.sidebar.slider("Std Dev 1 (μm)", 2, 10, 4, 0.5)
-    mean2 = st.sidebar.slider("Mean 2 (μm)", 30, 60, 45, 1)
-    std2 = st.sidebar.slider("Std Dev 2 (μm)", 2, 10, 6, 0.5)
+    mean1 = st.sidebar.slider("Mean 1 (μm)", 10.0, 30.0, 15.0, 1.0)
+    std1 = st.sidebar.slider("Std Dev 1 (μm)", 2.0, 10.0, 4.0, 0.5)  # ✅ Fixed
+    mean2 = st.sidebar.slider("Mean 2 (μm)", 30.0, 60.0, 45.0, 1.0)
+    std2 = st.sidebar.slider("Std Dev 2 (μm)", 2.0, 10.0, 6.0, 0.5)  # ✅ Fixed
     ratio = st.sidebar.slider("Ratio (Fine:Coarse)", 0.3, 0.7, 0.5, 0.05)
     
     n1 = int(10000 * ratio)
@@ -71,7 +72,7 @@ D50 = np.percentile(particle_sizes, 50)
 D90 = np.percentile(particle_sizes, 90)
 mean_size = np.mean(particle_sizes)
 std_size = np.std(particle_sizes)
-span = (D90 - D10) / D50
+span = (D90 - D10) / D50 if D50 > 0 else 0
 
 # Material-specific typical ranges
 material_ranges = {
@@ -129,7 +130,7 @@ ax2.plot(bin_centers, cumulative, color='#228B22', linewidth=2.5, label='Cumulat
 
 # Set axis limits
 ax.set_xlim(1, 100)
-ax.set_ylim(0, max(freq_dist) * 1.2)
+ax.set_ylim(0, max(freq_dist) * 1.2 if len(freq_dist) > 0 else 10)
 ax2.set_ylim(0, 105)
 
 # Set logarithmic x-axis
@@ -157,9 +158,9 @@ ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=10,
         verticalalignment='top', fontweight='bold', bbox=props)
 
 # Add vertical lines for D10, D50, D90
-ax.axvline(x=D10, color='gray', linestyle='--', linewidth=1, alpha=0.7, label='D₁₀')
-ax.axvline(x=D50, color='gray', linestyle='--', linewidth=1, alpha=0.7, label='D₅₀')
-ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7, label='D₉₀')
+ax.axvline(x=D10, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+ax.axvline(x=D50, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+ax.axvline(x=D90, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 
 # Add legend
 ax.legend(loc='upper right', fontsize=9)
@@ -218,8 +219,6 @@ st.subheader("💾 Export Options")
 col_dl1, col_dl2 = st.columns(2)
 
 with col_dl1:
-    # Save figure to buffer
-    from io import BytesIO
     buf_png = BytesIO()
     fig.savefig(buf_png, format='png', dpi=300, bbox_inches='tight')
     buf_png.seek(0)
@@ -232,8 +231,6 @@ with col_dl1:
     )
 
 with col_dl2:
-    # Save data to CSV
-    import pandas as pd
     df = pd.DataFrame({
         'Particle_Size_μm': particle_sizes,
         'Cumulative_Percentile': np.rankdata(particle_sizes) / len(particle_sizes) * 100
@@ -266,13 +263,3 @@ with st.expander("ℹ️ About Distribution Types"):
     - **Typical Span**: < 1.5 for good flowability
     - **D₅₀ Range**: 15-45 μm optimal for most SLM applications
     """)
-
-# Hide matplotlib warnings
-st.markdown(
-    """
-    <style>
-    .stAlert {display: none;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
