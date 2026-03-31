@@ -52,7 +52,7 @@ colormap = st.sidebar.selectbox(
 )
 
 # Font size control
-font_size = st.sidebar.slider("Font Size", 8, 16, 10, 1)
+font_size = st.sidebar.slider("Font Size", 8, 36, 10, 1)
 
 # Figure size - ✅ FIXED: All floats
 fig_width = st.sidebar.slider("Figure Width", 4.0, 12.0, 8.0, 0.5)
