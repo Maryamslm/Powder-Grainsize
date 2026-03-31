@@ -2,10 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 import matplotlib.gridspec as gridspec
+import streamlit as st
 
 # Set professional style
 plt.style.use('default')
-plt.rcParams['font.family']='Arial'
+plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = 10
 plt.rcParams['axes.linewidth'] = 1.5
 plt.rcParams['xtick.direction'] = 'in'
@@ -103,16 +104,18 @@ ax.text(-0.15, 1.05, '(b)', transform=ax.transAxes,
 # Tight layout
 plt.tight_layout()
 
-# Save figure
-plt.savefig('Mediloy_SCo_PSD_histogram.png', dpi=300, bbox_inches='tight')
-plt.savefig('Mediloy_SCo_PSD_histogram.pdf', bbox_inches='tight')
+# ============ STREAMLIT DISPLAY ============
+# Remove savefig and plt.show() for Streamlit
+st.title('Mediloy S-Co Particle Size Distribution')
+st.pyplot(fig)
 
-print(f"Particle Size Distribution Statistics for Mediloy S-Co:")
-print(f"D₁₀ (10th percentile): {D10:.2f} μm")
-print(f"D₅₀ (50th percentile/median): {D50:.2f} μm")
-print(f"D₉₀ (90th percentile): {D90:.2f} μm")
-print(f"Mean particle size: {np.mean(particle_sizes):.2f} μm")
-print(f"Standard deviation: {np.std(particle_sizes):.2f} μm")
-print(f"Range: {np.min(particle_sizes):.2f} - {np.max(particle_sizes):.2f} μm")
-
-plt.show()
+# Display statistics in Streamlit
+st.subheader('Particle Size Distribution Statistics')
+st.write(f"""
+- **D₁₀ (10th percentile):** {D10:.2f} μm
+- **D₅₀ (50th percentile/median):** {D50:.2f} μm
+- **D₉₀ (90th percentile):** {D90:.2f} μm
+- **Mean particle size:** {np.mean(particle_sizes):.2f} μm
+- **Standard deviation:** {np.std(particle_sizes):.2f} μm
+- **Range:** {np.min(particle_sizes):.2f} - {np.max(particle_sizes):.2f} μm
+""")
